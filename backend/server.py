@@ -259,7 +259,7 @@ async def upload_afiliaciones(file: UploadFile = File(...)):
 @api_router.get("/afiliaciones")
 async def get_afiliaciones():
     """Obtener todas las afiliaciones"""
-    afiliaciones = await db.afiliaciones.find({}, {"_id": 0}).to_list(10000)
+    afiliaciones = await db.afiliaciones.find({}, {"_id": 0}).to_list(100000)  # Aumentar límite a 100k
     return afiliaciones
 
 @api_router.get("/afiliaciones/search")
