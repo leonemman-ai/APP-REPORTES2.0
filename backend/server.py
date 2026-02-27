@@ -154,7 +154,7 @@ async def cargar_tt_desde_excel(file_path: Path):
             for idx, row in df.iterrows():
                 try:
                     # Obtener folio y verificar que no esté vacío
-                    folio = str(row.iloc[0]).strip()
+                    folio = str(row.iloc[0]).strip() if len(row) > 0 and not pd.isna(row.iloc[0]) else ""
                     
                     # Ignorar filas sin folio o con valores vacíos/nan
                     if not folio or folio.lower() in ['nan', 'none', '']:
@@ -164,11 +164,24 @@ async def cargar_tt_desde_excel(file_path: Path):
                     tt = {
                         "id": str(uuid.uuid4()),
                         "folio": folio,
+                        # Columna 2: TIPO INCIDENTE (servicio)
                         "servicio": str(row.iloc[2]).strip() if len(row) > 2 and not pd.isna(row.iloc[2]) else "",
-                        "tecnologia": str(row.iloc[3]).strip() if len(row) > 3 and not pd.isna(row.iloc[3]) else sheet_name,  # Usar nombre de hoja como tecnología si no existe
-                        "descripcion": str(row.iloc[10]).strip() if len(row) > 10 and not pd.isna(row.iloc[10]) else "",
+                        # Columna 3: DESCRIPCIÓN (tecnología)
+                        "tecnologia": str(row.iloc[3]).strip() if len(row) > 3 and not pd.isna(row.iloc[3]) else sheet_name,
+                        # Columna 7: BASE
+                        "base": str(row.iloc[7]).strip() if len(row) > 7 and not pd.isna(row.iloc[7]) else "",
+                        # Columna 8: SITIO (municipio/sitio)
+                        "sitio": str(row.iloc[8]).strip() if len(row) > 8 and not pd.isna(row.iloc[8]) else "",
+                        # Columna 9: DESCRIPCIÓN DEL ÁREA (afiliación)
                         "afiliacion": str(row.iloc[9]).strip() if len(row) > 9 and not pd.isna(row.iloc[9]) else "",
+                        # Columna 10: DESCRIPCIÓN DEL SERVICIO (descripción detallada)
+                        "descripcion": str(row.iloc[10]).strip() if len(row) > 10 and not pd.isna(row.iloc[10]) else "",
+                        # Columna 12: FECHA DE CREACIÓN DEL TICKET
                         "fecha": str(row.iloc[12]).strip() if len(row) > 12 and not pd.isna(row.iloc[12]) else "",
+                        # Columna 15: ATENDIDO POR
+                        "atendido_por": str(row.iloc[15]).strip() if len(row) > 15 and not pd.isna(row.iloc[15]) else "",
+                        # Columna 11: ESTATUS
+                        "estatus": str(row.iloc[11]).strip() if len(row) > 11 and not pd.isna(row.iloc[11]) else "",
                         "created_at": datetime.now(timezone.utc).isoformat()
                     }
                     tt_list.append(tt)
