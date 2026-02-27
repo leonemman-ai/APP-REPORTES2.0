@@ -69,27 +69,32 @@ export function FormularioOrden() {
 
   // Autocompletar cuando se selecciona un folio
   useEffect(() => {
-    if (formData.folio && troubleTickets.length > 0) {
-      const tt = troubleTickets.find(t => t.folio === formData.folio);
-      if (tt) {
-        setFormData(prev => ({
-          ...prev,
-          servicio: tt.servicio || '',
-          tecnologia: tt.tecnologia || '',
-          descripcion_falla: tt.descripcion || '',
-          falla_declarada: tt.descripcion || '',
-          fecha_creacion: tt.fecha || '',
-          afiliacion: tt.afiliacion || '',
-          afiliacion2: tt.afiliacion || ''
-        }));
-        
-        // Si hay afiliación, buscar datos
-        if (tt.afiliacion) {
-          handleAfiliacionChange(tt.afiliacion);
+    const autoFillFromTT = () => {
+      if (formData.folio && troubleTickets && troubleTickets.length > 0) {
+        const tt = troubleTickets.find(t => t.folio === formData.folio);
+        if (tt) {
+          setFormData(prev => ({
+            ...prev,
+            servicio: tt.servicio || '',
+            tecnologia: tt.tecnologia || '',
+            descripcion_falla: tt.descripcion || '',
+            falla_declarada: tt.descripcion || '',
+            fecha_creacion: tt.fecha || '',
+            afiliacion: tt.afiliacion || '',
+            afiliacion2: tt.afiliacion || ''
+          }));
+          
+          // Si hay afiliación, buscar datos
+          if (tt.afiliacion) {
+            handleAfiliacionChange(tt.afiliacion);
+          }
         }
       }
-    }
-  }, [formData.folio, troubleTickets]);
+    };
+    
+    autoFillFromTT();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.folio]);
 
   // Autocompletar cuando se selecciona una afiliación
   const handleAfiliacionChange = async (codigo) => {
