@@ -52,11 +52,27 @@ export const getTTByFolio = async (folio) => {
 
 // Documentos
 export const generarDocumento = async (formData) => {
-  const response = await axios.post(`${API}/documentos/generar`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    responseType: 'blob'
-  });
-  return response;
+  try {
+    const response = await axios.post(`${API}/documentos/generar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      responseType: 'blob',
+      timeout: 60000 // 60 segundos timeout
+    });
+    return response;
+  } catch (error) {
+    // Si el error tiene una respuesta blob, intentar leerla como JSON
+    if (error.response && error.response.data instanceof Blob) {
+      const text = await error.response.data.text();
+      try {
+        const jsonError = JSON.parse(text);
+        error.response.data = jsonError;
+      } catch (e) {
+        // No es JSON, mantener el texto
+        error.response.data = { detail: text };
+      }
+    }
+    throw error;
+  }
 };
 
 export const getDocumentos = async () => {
