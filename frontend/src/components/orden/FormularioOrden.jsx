@@ -83,13 +83,21 @@ export function FormularioOrden() {
             fecha_creacion: tt.fecha || '',
             afiliacion: tt.afiliacion || '',
             afiliacion2: tt.afiliacion || '',
+            // USAR SITIO COMO MUNICIPIO (viene del TT)
+            municipio: tt.sitio || prev.municipio || '',
+            // USAR AFILIACIÓN COMO NOMBRE COMERCIAL SI NO HAY OTRO
+            nombre_comercial: tt.afiliacion || prev.nombre_comercial || '',
             // LLENAR TODOS LOS CAMPOS DE FOLIO AUTOMÁTICAMENTE
             folio2: tt.folio || '',
             cliente_info: tt.afiliacion || '',
-            cliente2: tt.afiliacion || ''
+            cliente2: tt.afiliacion || '',
+            // LLENAR ATENDIDO POR si viene en el TT
+            atendido_por: tt.atendido_por || prev.atendido_por || '',
+            // LLENAR ESTATUS si viene en el TT
+            estatus_folio: tt.estatus || prev.estatus_folio || ''
           }));
           
-          // Si hay afiliación, buscar datos de municipio, dirección, nombre comercial
+          // Si hay afiliación, buscar datos adicionales (dirección)
           if (tt.afiliacion) {
             handleAfiliacionChange(tt.afiliacion);
           }
