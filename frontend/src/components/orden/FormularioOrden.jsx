@@ -102,23 +102,42 @@ export function FormularioOrden() {
   }, [formData.folio]);
 
   // Autocompletar cuando se selecciona una afiliación
-  const handleAfiliacionChange = (codigo) => {
+  const handleAfiliacionChange = async (codigo) => {
     if (!codigo) return;
     
     setFormData(prev => ({ ...prev, afiliacion: codigo, afiliacion2: codigo }));
     
+    // Buscar en la lista local primero
     if (afiliaciones && afiliaciones.length > 0) {
       const afiliacion = afiliaciones.find(a => a.codigo === codigo);
-      if (afiliacion) {
+      if (afiliacion && (afiliacion.municipio || afiliacion.direccion || afiliacion.nombre_comercial)) {
         setFormData(prev => ({
           ...prev,
           afiliacion: codigo,
           afiliacion2: codigo,
-          municipio: afiliacion.municipio || '',
-          direccion: afiliacion.direccion || '',
-          nombre_comercial: afiliacion.nombre_comercial || ''
+          municipio: afiliacion.municipio || prev.municipio || '',
+          direccion: afiliacion.direccion || prev.direccion || '',
+          nombre_comercial: afiliacion.nombre_comercial || prev.nombre_comercial || ''
+        }));
+        return;
+      }
+    }
+    
+    // Si no está en la lista local o no tiene datos, buscar en la API
+    try {
+      const afiliacionData = await searchAfiliacion(codigo);
+      if (afiliacionData) {
+        setFormData(prev => ({
+          ...prev,
+          afiliacion: codigo,
+          afiliacion2: codigo,
+          municipio: afiliacionData.municipio || prev.municipio || '',
+          direccion: afiliacionData.direccion || prev.direccion || '',
+          nombre_comercial: afiliacionData.nombre_comercial || prev.nombre_comercial || ''
         }));
       }
+    } catch (error) {
+      console.error('Error buscando afiliación:', error);
     }
   };
 
