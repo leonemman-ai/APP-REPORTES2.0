@@ -97,17 +97,23 @@ export function FormularioOrden() {
   }, [formData.folio]);
 
   // Autocompletar cuando se selecciona una afiliación
-  const handleAfiliacionChange = async (codigo) => {
+  const handleAfiliacionChange = (codigo) => {
+    if (!codigo) return;
+    
     setFormData(prev => ({ ...prev, afiliacion: codigo, afiliacion2: codigo }));
     
-    const afiliacion = afiliaciones.find(a => a.codigo === codigo);
-    if (afiliacion) {
-      setFormData(prev => ({
-        ...prev,
-        municipio: afiliacion.municipio || '',
-        direccion: afiliacion.direccion || '',
-        nombre_comercial: afiliacion.nombre_comercial || ''
-      }));
+    if (afiliaciones && afiliaciones.length > 0) {
+      const afiliacion = afiliaciones.find(a => a.codigo === codigo);
+      if (afiliacion) {
+        setFormData(prev => ({
+          ...prev,
+          afiliacion: codigo,
+          afiliacion2: codigo,
+          municipio: afiliacion.municipio || '',
+          direccion: afiliacion.direccion || '',
+          nombre_comercial: afiliacion.nombre_comercial || ''
+        }));
+      }
     }
   };
 
