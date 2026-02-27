@@ -133,45 +133,55 @@ async def cargar_afiliaciones_desde_excel(file_path: Path):
         raise HTTPException(status_code=500, detail=str(e))
 
 async def cargar_tt_desde_excel(file_path: Path):
-    """Carga trouble tickets desde archivo Excel a MongoDB"""
+    """Carga trouble tickets desde archivo Excel a MongoDB - TODAS LAS HOJAS"""
     try:
-        # Leer TODO el archivo Excel sin límite de filas
+        # Leer TODAS las hojas del archivo Excel
         logger.info(f"Iniciando carga de TT desde: {file_path}")
-        df = pd.read_excel(file_path, sheet_name=0)  # Leer primera hoja
+        excel_sheets = pd.read_excel(file_path, sheet_name=None)  # None = todas las hojas
         
-        logger.info(f"Total de filas en el archivo: {len(df)}")
+        logger.info(f"Total de hojas en el archivo: {len(excel_sheets)}")
         
         tt_list = []
         filas_invalidas = 0
+        hojas_procesadas = 0
         
-        for idx, row in df.iterrows():
-            try:
-                # Obtener folio y verificar que no esté vacío
-                folio = str(row.iloc[0]).strip()
-                
-                # Ignorar filas sin folio o con valores vacíos/nan
-                if not folio or folio.lower() in ['nan', 'none', '']:
+        # Procesar cada hoja del Excel
+        for sheet_name, df in excel_sheets.items():
+            logger.info(f"Procesando hoja '{sheet_name}' con {len(df)} filas")
+            hojas_procesadas += 1
+            tickets_en_hoja = 0
+            
+            for idx, row in df.iterrows():
+                try:
+                    # Obtener folio y verificar que no esté vacío
+                    folio = str(row.iloc[0]).strip()
+                    
+                    # Ignorar filas sin folio o con valores vacíos/nan
+                    if not folio or folio.lower() in ['nan', 'none', '']:
+                        filas_invalidas += 1
+                        continue
+                    
+                    tt = {
+                        "id": str(uuid.uuid4()),
+                        "folio": folio,
+                        "servicio": str(row.iloc[2]).strip() if len(row) > 2 and not pd.isna(row.iloc[2]) else "",
+                        "tecnologia": str(row.iloc[3]).strip() if len(row) > 3 and not pd.isna(row.iloc[3]) else sheet_name,  # Usar nombre de hoja como tecnología si no existe
+                        "descripcion": str(row.iloc[10]).strip() if len(row) > 10 and not pd.isna(row.iloc[10]) else "",
+                        "afiliacion": str(row.iloc[9]).strip() if len(row) > 9 and not pd.isna(row.iloc[9]) else "",
+                        "fecha": str(row.iloc[12]).strip() if len(row) > 12 and not pd.isna(row.iloc[12]) else "",
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    tt_list.append(tt)
+                    tickets_en_hoja += 1
+                    
+                except Exception as e:
+                    logger.warning(f"Error procesando fila {idx} de hoja '{sheet_name}': {e}")
                     filas_invalidas += 1
                     continue
-                
-                tt = {
-                    "id": str(uuid.uuid4()),
-                    "folio": folio,
-                    "servicio": str(row.iloc[2]).strip() if not pd.isna(row.iloc[2]) else "",
-                    "tecnologia": str(row.iloc[3]).strip() if not pd.isna(row.iloc[3]) else "",
-                    "descripcion": str(row.iloc[10]).strip() if not pd.isna(row.iloc[10]) else "",
-                    "afiliacion": str(row.iloc[9]).strip() if not pd.isna(row.iloc[9]) else "",
-                    "fecha": str(row.iloc[12]).strip() if not pd.isna(row.iloc[12]) else "",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-                tt_list.append(tt)
-                
-            except Exception as e:
-                logger.warning(f"Error procesando fila {idx}: {e}")
-                filas_invalidas += 1
-                continue
+            
+            logger.info(f"  ✓ Hoja '{sheet_name}': {tickets_en_hoja} tickets válidos")
         
-        logger.info(f"Procesadas {len(tt_list)} trouble tickets válidos, {filas_invalidas} filas inválidas")
+        logger.info(f"📊 RESUMEN: {len(tt_list)} tickets de {hojas_procesadas} hojas, {filas_invalidas} filas inválidas")
         
         # Limpiar colección y insertar nuevos datos
         await db.trouble_tickets.delete_many({})
@@ -181,9 +191,9 @@ async def cargar_tt_desde_excel(file_path: Path):
             for i in range(0, len(tt_list), batch_size):
                 batch = tt_list[i:i + batch_size]
                 await db.trouble_tickets.insert_many(batch)
-                logger.info(f"Insertados {len(batch)} TT (lote {i//batch_size + 1})")
+                logger.info(f"  💾 Insertados {len(batch)} TT (lote {i//batch_size + 1}/{(len(tt_list)-1)//batch_size + 1})")
         
-        logger.info(f"✅ Cargados TODOS los {len(tt_list)} trouble tickets exitosamente")
+        logger.info(f"✅ COMPLETADO: Cargados TODOS los {len(tt_list)} trouble tickets de {hojas_procesadas} hojas exitosamente")
         return len(tt_list)
     
     except Exception as e:
