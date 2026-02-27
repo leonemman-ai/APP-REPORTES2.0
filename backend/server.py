@@ -288,7 +288,7 @@ async def upload_tt(file: UploadFile = File(...)):
 @api_router.get("/tt")
 async def get_all_tt():
     """Obtener todos los trouble tickets"""
-    tts = await db.trouble_tickets.find({}, {"_id": 0}).to_list(10000)
+    tts = await db.trouble_tickets.find({}, {"_id": 0}).to_list(100000)  # Aumentar límite a 100k
     return tts
 
 @api_router.get("/tt/{folio}")
