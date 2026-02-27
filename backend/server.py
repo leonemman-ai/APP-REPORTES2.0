@@ -80,41 +80,56 @@ class DocumentoGenerado(BaseModel):
 async def cargar_afiliaciones_desde_excel(file_path: Path):
     """Carga afiliaciones desde archivo Excel a MongoDB"""
     try:
+        logger.info(f"Iniciando carga de afiliaciones desde: {file_path}")
         excel_sheets = pd.read_excel(file_path, sheet_name=None)
         afiliaciones_list = []
         
         for sheet_name, df in excel_sheets.items():
+            logger.info(f"Procesando hoja: {sheet_name} con {len(df)} filas")
             df.columns = df.columns.str.strip().str.upper()
             
             if "AFILIACIONES" not in df.columns:
+                logger.warning(f"Hoja {sheet_name} no tiene columna AFILIACIONES, saltando...")
                 continue
             
-            for _, row in df.iterrows():
-                afiliacion_codigo = str(row.get("AFILIACIONES", "")).strip()
-                
-                if afiliacion_codigo == "" or afiliacion_codigo.lower() == "nan":
+            for idx, row in df.iterrows():
+                try:
+                    afiliacion_codigo = str(row.get("AFILIACIONES", "")).strip()
+                    
+                    if afiliacion_codigo == "" or afiliacion_codigo.lower() == "nan":
+                        continue
+                    
+                    afiliacion = {
+                        "id": str(uuid.uuid4()),
+                        "codigo": afiliacion_codigo,
+                        "municipio": str(row.get("C5 TOLUCA", "")).strip(),
+                        "nombre_comercial": str(row.get("NOMBRE COMERCIAL", "")).strip(),
+                        "direccion": str(row.get("DIRECCION", "")).strip(),
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    afiliaciones_list.append(afiliacion)
+                    
+                except Exception as e:
+                    logger.warning(f"Error procesando fila {idx} de hoja {sheet_name}: {e}")
                     continue
-                
-                afiliacion = {
-                    "id": str(uuid.uuid4()),
-                    "codigo": afiliacion_codigo,
-                    "municipio": str(row.get("C5 TOLUCA", "")).strip(),
-                    "nombre_comercial": str(row.get("NOMBRE COMERCIAL", "")).strip(),
-                    "direccion": str(row.get("DIRECCION", "")).strip(),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                }
-                afiliaciones_list.append(afiliacion)
+        
+        logger.info(f"Total de afiliaciones procesadas: {len(afiliaciones_list)}")
         
         # Limpiar colección y insertar nuevos datos
         await db.afiliaciones.delete_many({})
         if afiliaciones_list:
-            await db.afiliaciones.insert_many(afiliaciones_list)
+            # Insertar en lotes si hay muchas
+            batch_size = 1000
+            for i in range(0, len(afiliaciones_list), batch_size):
+                batch = afiliaciones_list[i:i + batch_size]
+                await db.afiliaciones.insert_many(batch)
+                logger.info(f"Insertadas {len(batch)} afiliaciones (lote {i//batch_size + 1})")
         
-        logger.info(f"Cargadas {len(afiliaciones_list)} afiliaciones")
+        logger.info(f"✅ Cargadas TODAS las {len(afiliaciones_list)} afiliaciones exitosamente")
         return len(afiliaciones_list)
     
     except Exception as e:
-        logger.error(f"Error cargando afiliaciones: {e}")
+        logger.error(f"❌ Error cargando afiliaciones: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 async def cargar_tt_desde_excel(file_path: Path):
