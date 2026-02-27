@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '@/App.css';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { FormularioOrden } from '@/components/orden/FormularioOrden';
@@ -9,6 +9,7 @@ import { useTroubleTickets } from '@/hooks/useTroubleTickets';
 import { FileText, Settings, Files, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import api from '@/services/api';
 
 function Navigation() {
   const location = useLocation();
