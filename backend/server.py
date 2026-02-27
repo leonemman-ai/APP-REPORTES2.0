@@ -61,9 +61,13 @@ class TroubleTicket(BaseModel):
     folio: str
     servicio: str
     tecnologia: str
+    base: str = ""
+    sitio: str = ""
+    afiliacion: str = ""
     descripcion: str
-    afiliacion: str
     fecha: str
+    atendido_por: str = ""
+    estatus: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class DocumentoGenerado(BaseModel):
