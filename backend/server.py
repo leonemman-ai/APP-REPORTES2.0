@@ -120,34 +120,59 @@ async def cargar_afiliaciones_desde_excel(file_path: Path):
 async def cargar_tt_desde_excel(file_path: Path):
     """Carga trouble tickets desde archivo Excel a MongoDB"""
     try:
-        df = pd.read_excel(file_path)
-        tt_list = []
+        # Leer TODO el archivo Excel sin límite de filas
+        logger.info(f"Iniciando carga de TT desde: {file_path}")
+        df = pd.read_excel(file_path, sheet_name=0)  # Leer primera hoja
         
-        for _, row in df.iterrows():
-            folio = str(row.iloc[0]).strip()
-            
-            tt = {
-                "id": str(uuid.uuid4()),
-                "folio": folio,
-                "servicio": str(row.iloc[2]) if not pd.isna(row.iloc[2]) else "",
-                "tecnologia": str(row.iloc[3]) if not pd.isna(row.iloc[3]) else "",
-                "descripcion": str(row.iloc[10]) if not pd.isna(row.iloc[10]) else "",
-                "afiliacion": str(row.iloc[9]) if not pd.isna(row.iloc[9]) else "",
-                "fecha": str(row.iloc[12]) if not pd.isna(row.iloc[12]) else "",
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            tt_list.append(tt)
+        logger.info(f"Total de filas en el archivo: {len(df)}")
+        
+        tt_list = []
+        filas_invalidas = 0
+        
+        for idx, row in df.iterrows():
+            try:
+                # Obtener folio y verificar que no esté vacío
+                folio = str(row.iloc[0]).strip()
+                
+                # Ignorar filas sin folio o con valores vacíos/nan
+                if not folio or folio.lower() in ['nan', 'none', '']:
+                    filas_invalidas += 1
+                    continue
+                
+                tt = {
+                    "id": str(uuid.uuid4()),
+                    "folio": folio,
+                    "servicio": str(row.iloc[2]).strip() if not pd.isna(row.iloc[2]) else "",
+                    "tecnologia": str(row.iloc[3]).strip() if not pd.isna(row.iloc[3]) else "",
+                    "descripcion": str(row.iloc[10]).strip() if not pd.isna(row.iloc[10]) else "",
+                    "afiliacion": str(row.iloc[9]).strip() if not pd.isna(row.iloc[9]) else "",
+                    "fecha": str(row.iloc[12]).strip() if not pd.isna(row.iloc[12]) else "",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                tt_list.append(tt)
+                
+            except Exception as e:
+                logger.warning(f"Error procesando fila {idx}: {e}")
+                filas_invalidas += 1
+                continue
+        
+        logger.info(f"Procesadas {len(tt_list)} trouble tickets válidos, {filas_invalidas} filas inválidas")
         
         # Limpiar colección y insertar nuevos datos
         await db.trouble_tickets.delete_many({})
         if tt_list:
-            await db.trouble_tickets.insert_many(tt_list)
+            # Insertar en lotes de 1000 para evitar problemas con documentos grandes
+            batch_size = 1000
+            for i in range(0, len(tt_list), batch_size):
+                batch = tt_list[i:i + batch_size]
+                await db.trouble_tickets.insert_many(batch)
+                logger.info(f"Insertados {len(batch)} TT (lote {i//batch_size + 1})")
         
-        logger.info(f"Cargados {len(tt_list)} trouble tickets")
+        logger.info(f"✅ Cargados TODOS los {len(tt_list)} trouble tickets exitosamente")
         return len(tt_list)
     
     except Exception as e:
-        logger.error(f"Error cargando TT: {e}")
+        logger.error(f"❌ Error cargando TT: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def procesar_imagen(file, target_path: Path):
