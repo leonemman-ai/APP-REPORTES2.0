@@ -241,6 +241,19 @@ def procesar_imagen(file, target_path: Path):
 async def root():
     return {"message": "API de Órdenes de Incidente y Requerimiento"}
 
+@api_router.get("/stats")
+async def get_stats():
+    """Obtener estadísticas del sistema"""
+    afiliaciones_count = await db.afiliaciones.count_documents({})
+    tt_count = await db.trouble_tickets.count_documents({})
+    docs_count = await db.documentos.count_documents({})
+    
+    return {
+        "afiliaciones": afiliaciones_count,
+        "trouble_tickets": tt_count,
+        "documentos_generados": docs_count
+    }
+
 @api_router.post("/afiliaciones/upload")
 async def upload_afiliaciones(file: UploadFile = File(...)):
     """Subir archivo Excel de afiliaciones"""
