@@ -73,6 +73,7 @@ export function FormularioOrden() {
       if (formData.folio && troubleTickets && troubleTickets.length > 0) {
         const tt = troubleTickets.find(t => t.folio === formData.folio);
         if (tt) {
+          // LLENAR TODOS LOS CAMPOS CON DATOS DEL TT
           setFormData(prev => ({
             ...prev,
             servicio: tt.servicio || '',
@@ -81,10 +82,14 @@ export function FormularioOrden() {
             falla_declarada: tt.descripcion || '',
             fecha_creacion: tt.fecha || '',
             afiliacion: tt.afiliacion || '',
-            afiliacion2: tt.afiliacion || ''
+            afiliacion2: tt.afiliacion || '',
+            // LLENAR TODOS LOS CAMPOS DE FOLIO AUTOMÁTICAMENTE
+            folio2: tt.folio || '',
+            cliente_info: tt.afiliacion || '',
+            cliente2: tt.afiliacion || ''
           }));
           
-          // Si hay afiliación, buscar datos
+          // Si hay afiliación, buscar datos de municipio, dirección, nombre comercial
           if (tt.afiliacion) {
             handleAfiliacionChange(tt.afiliacion);
           }
