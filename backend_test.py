@@ -188,7 +188,7 @@ class OrdenesAPITester:
 
     def test_generar_documento(self):
         """Test document generation"""
-        # Get some test data first
+        # Get some test data first  
         _, afiliaciones = self.test_get_afiliaciones()
         _, tts = self.test_get_trouble_tickets()
         
@@ -207,9 +207,36 @@ class OrdenesAPITester:
             'solucion': 'Test solution'
         }
         
-        # Test without images first (basic document generation)
-        success, response = self.run_test("Generate Document", "POST", "/documentos/generar", 200, data=form_data)
-        return success, response
+        # Use multipart form data format
+        try:
+            url = f"{self.base_url}/documentos/generar"
+            response = requests.post(url, data=form_data)  # Don't set Content-Type for multipart
+            
+            self.tests_run += 1
+            print(f"\n🔍 Testing Generate Document...")
+            print(f"   URL: {url}")
+            
+            if response.status_code == 200:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                print(f"   Document generated successfully, size: {len(response.content)} bytes")
+                return True, {}
+            else:
+                error_msg = f"Expected 200, got {response.status_code}"
+                print(f"❌ Failed - {error_msg}")
+                try:
+                    error_detail = response.json()
+                    print(f"   Error detail: {error_detail}")
+                except:
+                    print(f"   Response text: {response.text}")
+                self.errors.append(f"Generate Document: {error_msg}")
+                return False, {}
+                
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            print(f"❌ Failed - {error_msg}")
+            self.errors.append(f"Generate Document: {error_msg}")
+            return False, {}
 
 def main():
     print("🧪 Starting Órdenes API Tests...")
