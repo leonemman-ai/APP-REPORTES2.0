@@ -102,20 +102,44 @@ function Navigation() {
 }
 
 function HomePage() {
-  const { afiliaciones, loading: loadingAfiliaciones, refetch: refetchAfiliaciones } = useAfiliaciones();
-  const { troubleTickets, loading: loadingTT, refetch: refetchTT } = useTroubleTickets();
+  const { refetch: refetchAfiliaciones } = useAfiliaciones();
+  const { refetch: refetchTT } = useTroubleTickets();
+  const [stats, setStats] = useState({ afiliaciones: 0, trouble_tickets: 0, documentos_generados: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDataReloaded = () => {
+    fetchStats();
+    refetchAfiliaciones();
+    refetchTT();
+  };
 
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Afiliaciones Cargadas</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {loadingAfiliaciones ? '...' : afiliaciones.length}
+                  {loading ? '...' : stats.afiliaciones.toLocaleString()}
                 </p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -131,11 +155,27 @@ function HomePage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Trouble Tickets</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {loadingTT ? '...' : troubleTickets.length}
+                  {loading ? '...' : stats.trouble_tickets.toLocaleString()}
                 </p>
               </div>
               <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
                 <Files className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Documentos Generados</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {loading ? '...' : stats.documentos_generados.toLocaleString()}
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <FileText className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
