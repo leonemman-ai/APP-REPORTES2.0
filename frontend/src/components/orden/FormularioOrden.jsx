@@ -125,6 +125,18 @@ export function FormularioOrden() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validaciones básicas
+    if (!formData.folio) {
+      alert('Por favor seleccione un folio');
+      return;
+    }
+    
+    if (!formData.tecnico || !formData.supervisor) {
+      alert('Por favor complete los campos de Técnico y Supervisor');
+      return;
+    }
+    
     setLoading(true);
     setSuccess(false);
 
@@ -133,7 +145,7 @@ export function FormularioOrden() {
       
       // Agregar todos los campos del formulario
       Object.keys(formData).forEach(key => {
-        formDataToSend.append(key, formData[key]);
+        formDataToSend.append(key, formData[key] || '');
       });
 
       // Agregar imágenes
@@ -146,20 +158,26 @@ export function FormularioOrden() {
       const response = await generarDocumento(formDataToSend);
       
       // Descargar el archivo
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${formData.folio || 'documento'}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      if (response && response.data) {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${formData.folio || 'documento'}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        throw new Error('No se recibió respuesta del servidor');
+      }
       
     } catch (error) {
       console.error('Error generando documento:', error);
-      alert('Error al generar el documento. Por favor intenta de nuevo.');
+      const errorMsg = error.response?.data?.detail || error.message || 'Error desconocido';
+      alert(`Error al generar el documento: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
