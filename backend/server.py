@@ -573,13 +573,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Cargar afiliaciones desde archivo base si existe"""
-    afiliaciones_file = TEMPLATES_FOLDER / "AFILIACIONES_CASEOLI.xlsx"
-    if afiliaciones_file.exists():
-        count = await db.afiliaciones.count_documents({})
-        if count == 0:
-            logger.info("Cargando afiliaciones desde archivo base...")
-            await cargar_afiliaciones_desde_excel(afiliaciones_file)
+    """Startup sin carga automática - sistema arranca en blanco"""
+    logger.info("🚀 Sistema iniciado correctamente - Base de datos vacía")
+    logger.info("💡 Para cargar datos, usa la página de Configuración")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
