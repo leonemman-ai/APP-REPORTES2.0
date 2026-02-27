@@ -90,25 +90,63 @@ async def cargar_afiliaciones_desde_excel(file_path: Path):
         
         for sheet_name, df in excel_sheets.items():
             logger.info(f"Procesando hoja: {sheet_name} con {len(df)} filas")
+            
+            # Limpiar nombres de columnas
             df.columns = df.columns.str.strip().str.upper()
             
-            if "AFILIACIONES" not in df.columns:
-                logger.warning(f"Hoja {sheet_name} no tiene columna AFILIACIONES, saltando...")
+            logger.info(f"Columnas encontradas en {sheet_name}: {df.columns.tolist()}")
+            
+            # Buscar las columnas correctas (pueden tener variaciones en el nombre)
+            col_afiliacion = None
+            col_municipio = None
+            col_nombre_comercial = None
+            col_direccion = None
+            
+            for col in df.columns:
+                col_upper = col.upper()
+                if 'AFILIACI' in col_upper:
+                    col_afiliacion = col
+                elif 'MUNICIPIO' in col_upper:
+                    col_municipio = col
+                elif 'NOMBRE' in col_upper and 'COMERCIAL' in col_upper:
+                    col_nombre_comercial = col
+                elif 'DIRECCI' in col_upper or 'DIRECCIÓN' in col_upper:
+                    col_direccion = col
+            
+            # Si no encontramos las columnas por nombre, usar índices
+            if not col_afiliacion and len(df.columns) > 1:
+                col_afiliacion = df.columns[1]  # Columna B (índice 1)
+                logger.info(f"Usando columna por índice 1 como AFILIACIÓN: {col_afiliacion}")
+            
+            if not col_municipio and len(df.columns) > 0:
+                col_municipio = df.columns[0]  # Columna A (índice 0)
+                logger.info(f"Usando columna por índice 0 como MUNICIPIO: {col_municipio}")
+            
+            if not col_nombre_comercial and len(df.columns) > 2:
+                col_nombre_comercial = df.columns[2]  # Columna C (índice 2)
+                logger.info(f"Usando columna por índice 2 como NOMBRE COMERCIAL: {col_nombre_comercial}")
+            
+            if not col_direccion and len(df.columns) > 3:
+                col_direccion = df.columns[3]  # Columna D (índice 3)
+                logger.info(f"Usando columna por índice 3 como DIRECCIÓN: {col_direccion}")
+            
+            if not col_afiliacion:
+                logger.warning(f"No se encontró columna de afiliación en hoja {sheet_name}, saltando...")
                 continue
             
             for idx, row in df.iterrows():
                 try:
-                    afiliacion_codigo = str(row.get("AFILIACIONES", "")).strip()
+                    afiliacion_codigo = str(row.get(col_afiliacion, "")).strip()
                     
-                    if afiliacion_codigo == "" or afiliacion_codigo.lower() == "nan":
+                    if afiliacion_codigo == "" or afiliacion_codigo.lower() in ['nan', 'none']:
                         continue
                     
                     afiliacion = {
                         "id": str(uuid.uuid4()),
                         "codigo": afiliacion_codigo,
-                        "municipio": str(row.get("C5 TOLUCA", "")).strip(),
-                        "nombre_comercial": str(row.get("NOMBRE COMERCIAL", "")).strip(),
-                        "direccion": str(row.get("DIRECCION", "")).strip(),
+                        "municipio": str(row.get(col_municipio, "")).strip() if col_municipio else "",
+                        "nombre_comercial": str(row.get(col_nombre_comercial, "")).strip() if col_nombre_comercial else "",
+                        "direccion": str(row.get(col_direccion, "")).strip() if col_direccion else "",
                         "created_at": datetime.now(timezone.utc).isoformat()
                     }
                     afiliaciones_list.append(afiliacion)
