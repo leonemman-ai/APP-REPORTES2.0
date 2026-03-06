@@ -1,0 +1,11 @@
+FROM python:3.11
+
+WORKDIR /app
+
+COPY backend /app/backend
+
+WORKDIR /app/backend
+
+RUN pip install -r requirements.txt
+
+CMD ["uvicorn","server:app","--host","0.0.0.0","--port","8080"]
